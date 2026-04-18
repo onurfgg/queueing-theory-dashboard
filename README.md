@@ -8,7 +8,7 @@
 
 A modern, web-based interactive simulation engine designed to visualize and analyze the **M/M/c Queueing Model** in real-time. This dashboard bridges the gap between theoretical Operations Research formulas and practical system behavior by simulating random arrivals (Poisson process) and service times (Exponential distribution) right in the browser.
 
-[🚀 **Click Here for Live Demo**](https://onurfgg.github.io/queueing-theory-dashboard/) *(Buraya kendi canlı linkini eklemeyi unutma)*
+[🚀 **Click Here for Live Demo**](https://onurfgg.github.io/queueing-theory-dashboard/)
 
 ## ✨ Key Features
 
