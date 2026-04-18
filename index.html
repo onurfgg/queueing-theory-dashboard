@@ -11,6 +11,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -46,7 +48,7 @@
 
         .dashboard {
             width: 100%; max-width: 1300px;
-            display: grid; grid-template-columns: 350px 1fr; gap: 20px;
+            display: grid; grid-template-columns: 380px 1fr; gap: 20px;
             margin-top: 60px;
         }
 
@@ -70,11 +72,17 @@
         }
         .input-box input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(59,130,246,0.3);}
 
-        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 900; font-size: 15px; cursor: pointer; transition: 0.3s; text-transform: uppercase;}
+        .btn-group { display: flex; gap: 10px; }
+        .btn { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: 900; font-size: 14px; cursor: pointer; transition: 0.3s; text-transform: uppercase; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        
+        .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4); }
         
-        .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase;}
+        .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
         .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+        
+        .btn-secondary { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); color: white; border-color: white;}
 
         /* TEORİK SONUÇLAR */
         .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -95,22 +103,22 @@
 
         /* KUYRUK (QUEUE) GÖRSELİ */
         .queue-container {
-            height: 80px; background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.1);
+            height: 60px; background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.1);
             border-radius: 12px; display: flex; align-items: center; justify-content: flex-end; padding: 0 15px; overflow: hidden; gap: 8px;
         }
         .customer {
-            width: 25px; height: 25px; background: var(--primary); border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; font-size: 12px; color: white;
+            width: 20px; height: 20px; background: var(--primary); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-size: 10px; color: white;
             box-shadow: 0 0 10px rgba(59,130,246,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
         /* SUNUCULAR (SERVERS) GÖRSELİ */
         .servers-container {
-            display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px;
+            display: flex; flex-wrap: wrap; gap: 10px;
         }
         .server-box {
-            flex: 1; min-width: 100px; height: 100px; background: rgba(0,0,0,0.3);
+            flex: 1; min-width: 80px; height: 80px; background: rgba(0,0,0,0.3);
             border: 2px solid var(--glass-border); border-radius: 12px;
             display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.3s;
             position: relative; overflow: hidden;
@@ -118,12 +126,16 @@
         .server-box.idle { border-color: rgba(255,255,255,0.2); }
         .server-box.busy { border-color: var(--warning); box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
         
-        .server-icon { font-size: 24px; color: var(--text-muted); margin-bottom: 5px; transition: 0.3s;}
+        .server-icon { font-size: 20px; color: var(--text-muted); margin-bottom: 5px; transition: 0.3s;}
         .server-box.busy .server-icon { color: var(--warning); }
-        
-        .server-label { font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;}
-        
+        .server-label { font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;}
         .progress-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: var(--warning); width: 0%; transition: width 0.1s linear;}
+
+        /* YENİ: GRAFİK (CHART) ALANI */
+        .chart-container {
+            position: relative; height: 250px; width: 100%; margin-top: 10px;
+            background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border: 1px solid var(--glass-border); box-sizing: border-box;
+        }
 
         @media screen and (max-width: 900px) {
             .dashboard { grid-template-columns: 1fr; margin-top: 60px;}
@@ -149,28 +161,31 @@
             
             <div class="input-group">
                 <div class="input-box">
-                    <label title="Birim zamandaki ortalama geliş sayısı">Geliş Oranı ($\lambda$)</label>
+                    <label>Geliş Oranı ($\lambda$)</label>
                     <input type="number" id="input-lambda" value="10" min="1">
                 </div>
                 <div class="input-box">
-                    <label title="Bir sunucunun birim zamanda sunduğu hizmet">Hizmet Oranı ($\mu$)</label>
+                    <label>Hizmet Oranı ($\mu$)</label>
                     <input type="number" id="input-mu" value="4" min="1">
                 </div>
                 <div class="input-box">
                     <label>Sunucu Sayısı ($c$)</label>
-                    <input type="number" id="input-c" value="3" min="1" max="10">
+                    <input type="number" id="input-c" value="3" min="1" max="20">
                 </div>
                 <div class="input-box">
-                    <label>Simülasyon Hızı (x)</label>
-                    <input type="number" id="input-speed" value="60" min="1">
+                    <label title="Maksimum 1000x yapılabilir">Simülasyon Hızı (x)</label>
+                    <input type="number" id="input-speed" value="60" min="1" max="1000">
                 </div>
             </div>
 
-            <button class="btn-primary" id="btn-start"><i class="fa-solid fa-play"></i> Simülasyonu Başlat</button>
-            <button class="btn-danger" id="btn-stop" style="display: none;"><i class="fa-solid fa-stop"></i> Durdur</button>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btn-start"><i class="fa-solid fa-play"></i> Başlat</button>
+                <button class="btn btn-danger" id="btn-stop" style="display: none;"><i class="fa-solid fa-pause"></i> Duraklat</button>
+                <button class="btn btn-secondary" id="btn-reset" disabled><i class="fa-solid fa-rotate-right"></i> Sıfırla</button>
+            </div>
 
             <div class="warning-msg" id="warning-rho">
-                <i class="fa-solid fa-triangle-exclamation"></i> DİKKAT: Sistem Kapasitesi Yetersiz! ( $\rho \ge 1$ ). Kuyruk sonsuza uzayacaktır!
+                <i class="fa-solid fa-triangle-exclamation"></i> DİKKAT: Sistem Kapasitesi Yetersiz ($\rho \ge 1$). Kuyruk patlayacaktır!
             </div>
 
             <h2 style="margin-top: 10px;"><i class="fa-solid fa-calculator"></i> Teorik Beklentiler</h2>
@@ -223,25 +238,26 @@
                 </div>
             </div>
 
-            <h2 style="font-size: 14px; margin-top: 10px; color: var(--text-muted);">Bekleme Kuyruğu ($L_q$)</h2>
-            <div class="queue-container" id="queue-display">
-                </div>
+            <div class="queue-container" id="queue-display"></div>
+            <div class="servers-container" id="servers-display"></div>
 
-            <h2 style="font-size: 14px; margin-top: 10px; color: var(--text-muted);">Hizmet Noktaları (Sunucular)</h2>
-            <div class="servers-container" id="servers-display">
-                </div>
+            <div class="chart-container">
+                <canvas id="liveChart"></canvas>
+            </div>
         </div>
     </div>
 
     <script>
-        // KaTeX formüllerini render et
+        // Chart.js Karanlık Tema Ayarları
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
+        Chart.defaults.font.family = "'Segoe UI', Tahoma, sans-serif";
+
         document.addEventListener("DOMContentLoaded", function() {
-            renderMathInElement(document.body, {
-                delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false} ],
-                throwOnError: false
-            });
-            calculateTheoretical(); // Açılışta formülleri hesapla
+            renderMathInElement(document.body, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false} ], throwOnError: false });
+            calculateTheoretical(); 
             drawServers(parseInt(document.getElementById('input-c').value));
+            initChart();
         });
 
         // DOM Elemanları
@@ -252,15 +268,14 @@
         
         const btnStart = document.getElementById('btn-start');
         const btnStop = document.getElementById('btn-stop');
+        const btnReset = document.getElementById('btn-reset');
         const warningRho = document.getElementById('warning-rho');
 
-        // Teorik Ekranlar
         const tRho = document.getElementById('theo-rho');
         const tP0 = document.getElementById('theo-p0');
         const tLq = document.getElementById('theo-lq');
         const tWq = document.getElementById('theo-wq');
 
-        // Simülasyon Ekranları
         const simClock = document.getElementById('sim-clock');
         const simCompleted = document.getElementById('sim-completed');
         const simQLength = document.getElementById('sim-q-length');
@@ -269,224 +284,193 @@
         const serversDisplay = document.getElementById('servers-display');
 
         // Simülasyon Değişkenleri
-        let simInterval = null;
-        let isRunning = false;
-        let simTime = 0; // Dakika cinsinden
-        let timeStep = 0.05; // Her tick'te kaç dakika ilerleyecek
+        let simInterval = null; let isRunning = false;
+        let simTime = 0; let timeStep = 0.05; 
         
         let lambda, mu, c;
-        let nextArrivalTime = 0;
-        let queue = 0;
-        let completedCustomers = 0;
-        let servers = []; // { id, busyUntil, totalServiceTime }
+        let nextArrivalTime = 0; let queue = 0; let completedCustomers = 0;
+        let servers = []; 
+        let tickCounter = 0;
 
-        // Faktöriyel Fonksiyonu
-        function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); }
+        // Grafik Değişkenleri
+        let liveChart;
+        const maxDataPoints = 60; // Grafikte en fazla 60 nokta görünsün (kasmasın)
+        let chartLabels = [];
+        let chartDataL = [];
+        let chartDataLq = [];
 
-        // Üstel Dağılım (Exponential Distribution) Rastgele Sayı Üretici
-        // Oran (rate) alır, zaman döndürür
-        function getExpRandom(rate) {
-            return -Math.log(1 - Math.random()) / rate;
+        function initChart() {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            liveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        { label: 'Sistemdeki Kişi (L)', data: chartDataL, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.3, pointRadius: 0 },
+                        { label: 'Kuyruktaki Kişi (Lq)', data: chartDataLq, borderColor: '#f59e0b', backgroundColor: 'transparent', borderDash: [5, 5], tension: 0.3, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    scales: { x: { display: false }, y: { beginAtZero: true, suggestedMax: 5 } },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: {size: 11} } } }
+                }
+            });
         }
 
-        // --- TEORİK HESAPLAMA (M/M/c Formülleri) ---
+        function updateChart(timeStr, lValue, lqValue) {
+            chartLabels.push(timeStr);
+            chartDataL.push(lValue);
+            chartDataLq.push(lqValue);
+
+            if (chartLabels.length > maxDataPoints) {
+                chartLabels.shift(); chartDataL.shift(); chartDataLq.shift();
+            }
+            liveChart.update();
+        }
+
+        function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); }
+        function getExpRandom(rate) { return -Math.log(1 - Math.random()) / rate; }
+
         function calculateTheoretical() {
-            lambda = parseFloat(lambdaInput.value);
-            mu = parseFloat(muInput.value);
-            c = parseInt(cInput.value);
-
-            const u = lambda / mu;
-            const rho = u / c;
-
+            lambda = parseFloat(lambdaInput.value); mu = parseFloat(muInput.value); c = parseInt(cInput.value);
+            const u = lambda / mu; const rho = u / c;
             tRho.innerText = (rho * 100).toFixed(1) + "%";
 
             if (rho >= 1) {
-                warningRho.style.display = 'block';
-                tP0.innerText = "N/A"; tLq.innerText = "∞"; tWq.innerText = "∞";
-                return;
-            } else {
-                warningRho.style.display = 'none';
-            }
+                warningRho.style.display = 'block'; tP0.innerText = "N/A"; tLq.innerText = "∞"; tWq.innerText = "∞"; return;
+            } else { warningRho.style.display = 'none'; }
 
-            // P0 Hesaplama
             let sum = 0;
-            for (let n = 0; n < c; n++) {
-                sum += Math.pow(u, n) / fact(n);
-            }
+            for (let n = 0; n < c; n++) sum += Math.pow(u, n) / fact(n);
             sum += (Math.pow(u, c) / fact(c)) * (1 / (1 - rho));
             const p0 = 1 / sum;
-
-            // Lq ve Wq Hesaplama
             const lq = (p0 * Math.pow(u, c) * rho) / (fact(c) * Math.pow(1 - rho, 2));
             const wq = lq / lambda;
 
-            tP0.innerText = (p0 * 100).toFixed(2) + "%";
-            tLq.innerText = lq.toFixed(2);
-            tWq.innerText = wq.toFixed(2);
+            tP0.innerText = (p0 * 100).toFixed(2) + "%"; tLq.innerText = lq.toFixed(2); tWq.innerText = wq.toFixed(2);
         }
 
-        // Girdi Değişiminde Teoriyi Güncelle
         [lambdaInput, muInput, cInput].forEach(inp => {
             inp.addEventListener('input', () => {
-                if(!isRunning) {
-                    calculateTheoretical();
-                    drawServers(parseInt(cInput.value));
-                }
+                if(!isRunning && simTime === 0) { calculateTheoretical(); drawServers(parseInt(cInput.value)); }
             });
         });
 
-        // --- ARAYÜZ (DOM) ÇİZİM FONKSİYONLARI ---
         function drawServers(count) {
-            serversDisplay.innerHTML = '';
-            servers = [];
+            serversDisplay.innerHTML = ''; servers = [];
             for (let i = 0; i < count; i++) {
                 servers.push({ id: i, busyUntil: 0, currentServiceDuration: 0 });
-                
                 const sDiv = document.createElement('div');
-                sDiv.className = 'server-box idle';
-                sDiv.id = `server-${i}`;
-                sDiv.innerHTML = `
-                    <i class="fa-solid fa-user-tie server-icon"></i>
-                    <div class="server-label">Vezne ${i+1}</div>
-                    <div class="progress-bar" id="prog-${i}"></div>
-                `;
+                sDiv.className = 'server-box idle'; sDiv.id = `server-${i}`;
+                sDiv.innerHTML = `<i class="fa-solid fa-user-tie server-icon"></i><div class="server-label">Vezne ${i+1}</div><div class="progress-bar" id="prog-${i}"></div>`;
                 serversDisplay.appendChild(sDiv);
             }
         }
 
         function updateQueueVisuals() {
-            // Sadece görsel amaçlı en fazla 20 kişiyi çizelim, DOM kasmasın
             const displayLimit = Math.min(queue, 25);
             const currentNodes = queueDisplay.childElementCount;
-
             if (currentNodes < displayLimit) {
                 for (let i = 0; i < displayLimit - currentNodes; i++) {
-                    const c = document.createElement('div');
-                    c.className = 'customer';
-                    c.innerHTML = '<i class="fa-solid fa-user" style="font-size:10px;"></i>';
-                    queueDisplay.appendChild(c);
+                    const cu = document.createElement('div'); cu.className = 'customer'; cu.innerHTML = '<i class="fa-solid fa-user" style="font-size:10px;"></i>'; queueDisplay.appendChild(cu);
                 }
             } else if (currentNodes > displayLimit) {
-                for (let i = 0; i < currentNodes - displayLimit; i++) {
-                    queueDisplay.removeChild(queueDisplay.firstChild);
-                }
+                for (let i = 0; i < currentNodes - displayLimit; i++) queueDisplay.removeChild(queueDisplay.firstChild);
             }
         }
 
         function formatClock(totalMinutes) {
-            const h = Math.floor(totalMinutes / 60);
-            const m = Math.floor(totalMinutes % 60);
-            const s = Math.floor((totalMinutes * 60) % 60);
+            const h = Math.floor(totalMinutes / 60); const m = Math.floor(totalMinutes % 60); const s = Math.floor((totalMinutes * 60) % 60);
             return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
         }
 
-        // --- SİMÜLASYON DÖNGÜSÜ (CORE ENGINE) ---
         function simulationTick() {
-            // Zamanı İlerlet
             simTime += timeStep;
             simClock.innerText = formatClock(simTime);
 
-            // 1. Olay (Event): Yeni Müşteri Geldi mi?
             if (simTime >= nextArrivalTime) {
-                queue++;
-                updateQueueVisuals();
-                // Bir sonraki geliş zamanını belirle (Üstel Dağılım)
+                queue++; updateQueueVisuals();
                 nextArrivalTime = simTime + getExpRandom(lambda);
             }
 
             let busyCount = 0;
-
-            // 2. Olay: Sunucu Kontrolleri
             for (let i = 0; i < c; i++) {
-                const s = servers[i];
-                const sBox = document.getElementById(`server-${i}`);
-                const pBar = document.getElementById(`prog-${i}`);
-
-                // Eğer sunucu çalışıyorsa
+                const s = servers[i]; const sBox = document.getElementById(`server-${i}`); const pBar = document.getElementById(`prog-${i}`);
                 if (s.busyUntil > simTime) {
                     busyCount++;
-                    // İlerleme çubuğunu güncelle
-                    const timeSpent = simTime - (s.busyUntil - s.currentServiceDuration);
-                    const percent = (timeSpent / s.currentServiceDuration) * 100;
+                    const percent = ((simTime - (s.busyUntil - s.currentServiceDuration)) / s.currentServiceDuration) * 100;
                     pBar.style.width = `${Math.min(percent, 100)}%`;
-                } 
-                // Eğer sunucu boşaldıysa
-                else {
+                } else {
                     if (sBox.classList.contains('busy')) {
-                        // İşlem az önce bitti demektir
-                        sBox.classList.remove('busy');
-                        sBox.classList.add('idle');
-                        pBar.style.width = `0%`;
-                        completedCustomers++;
-                        simCompleted.innerText = completedCustomers;
+                        sBox.classList.remove('busy'); sBox.classList.add('idle'); pBar.style.width = `0%`;
+                        completedCustomers++; simCompleted.innerText = completedCustomers;
                     }
-
-                    // Kuyrukta adam varsa hemen al
                     if (queue > 0) {
-                        queue--;
-                        updateQueueVisuals();
-                        
-                        // Hizmet süresini belirle (Üstel Dağılım)
+                        queue--; updateQueueVisuals();
                         const serviceTime = getExpRandom(mu);
-                        s.busyUntil = simTime + serviceTime;
-                        s.currentServiceDuration = serviceTime;
-                        
-                        sBox.classList.remove('idle');
-                        sBox.classList.add('busy');
-                        busyCount++;
+                        s.busyUntil = simTime + serviceTime; s.currentServiceDuration = serviceTime;
+                        sBox.classList.remove('idle'); sBox.classList.add('busy'); busyCount++;
                     }
                 }
             }
 
-            // İstatistikleri Güncelle
-            simQLength.innerText = queue;
-            simL.innerText = queue + busyCount;
+            const currentL = queue + busyCount;
+            simQLength.innerText = queue; simL.innerText = currentL;
+
+            // Grafiği her saniyede bir (veya her 20 tick'te) güncelle
+            tickCounter++;
+            if(tickCounter % 10 === 0) updateChart(formatClock(simTime), currentL, queue);
         }
 
-        // --- KONTROLCÜLER ---
         btnStart.addEventListener('click', () => {
-            calculateTheoretical(); // Parametreleri son kez güncelle
-            
+            calculateTheoretical(); 
             c = parseInt(cInput.value);
-            const speedMultiplier = parseInt(speedInput.value) || 1;
             
-            // Gerçek dünyada setInterval 50ms'de bir çalışsın
+            // YENİ EKLENTİ: Maksimum Hız Koruması (Tarayıcı çökmesini engeller)
+            let requestedSpeed = parseInt(speedInput.value) || 1;
+            const speedMultiplier = Math.min(requestedSpeed, 1000); 
+            speedInput.value = speedMultiplier; // Input'u UI'da da düzelt
+
             const realWorldTickMs = 50; 
-            // 50ms'de simülasyonda ne kadar zaman geçecek? (Hız ayarı)
-            // Normalde 50ms = 0.05 saniye = 0.05 / 60 dakika.
             timeStep = (realWorldTickMs / 60000) * speedMultiplier;
 
             if (!isRunning) {
-                // Eğer sıfırdan başlıyorsa
                 if (simTime === 0) {
-                    drawServers(c);
-                    nextArrivalTime = getExpRandom(lambda);
-                    queue = 0;
-                    completedCustomers = 0;
-                    simCompleted.innerText = "0";
-                    queueDisplay.innerHTML = '';
+                    drawServers(c); nextArrivalTime = getExpRandom(lambda); queue = 0; completedCustomers = 0;
+                    simCompleted.innerText = "0"; queueDisplay.innerHTML = ''; tickCounter = 0;
                 }
-
                 isRunning = true;
-                btnStart.style.display = 'none';
-                btnStop.style.display = 'block';
-                
-                // Girdileri Kilitle
+                btnStart.style.display = 'none'; btnStop.style.display = 'block'; btnReset.disabled = true;
                 lambdaInput.disabled = true; muInput.disabled = true; cInput.disabled = true;
-
                 simInterval = setInterval(simulationTick, realWorldTickMs);
             }
         });
 
         btnStop.addEventListener('click', () => {
-            isRunning = false;
-            clearInterval(simInterval);
-            
-            btnStop.style.display = 'none';
-            btnStart.style.display = 'block';
-            btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Devam Et';
+            isRunning = false; clearInterval(simInterval);
+            btnStop.style.display = 'none'; btnStart.style.display = 'block'; btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Devam Et';
+            btnReset.disabled = false; // Duraklatıldığında sıfırlama izni ver
+            btnReset.classList.remove('btn-secondary'); btnReset.classList.add('btn-danger'); // Dikkat çeksin
+        });
 
-            // Girdileri Aç
+        // YENİ EKLENTİ: Sıfırlama (Reset) Butonu
+        btnReset.addEventListener('click', () => {
+            simTime = 0; queue = 0; completedCustomers = 0; tickCounter = 0;
+            simClock.innerText = "00:00:00";
+            simCompleted.innerText = "0";
+            simQLength.innerText = "0";
+            simL.innerText = "0";
+            queueDisplay.innerHTML = '';
+            
+            chartLabels.length = 0; chartDataL.length = 0; chartDataLq.length = 0;
+            liveChart.update();
+            drawServers(parseInt(cInput.value));
+
+            btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Başlat';
+            btnReset.disabled = true;
+            btnReset.classList.remove('btn-danger'); btnReset.classList.add('btn-secondary');
+            
             lambdaInput.disabled = false; muInput.disabled = false; cInput.disabled = false;
         });
 
