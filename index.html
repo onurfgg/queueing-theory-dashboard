@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuyruk Teorisi Simülatörü | M/M/c Model</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            margin: 0; padding: 20px;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top right, #1e293b, #0f172a);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            color: var(--text-main);
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* --- SOSYAL MEDYA BUTONLARI --- */
+        .social-container {
+            position: absolute; top: 20px; left: 20px; z-index: 15; display: flex; gap: 10px;
+        }
+        .social-btn {
+            color: white; text-decoration: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 14px;
+            display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: 0.3s;
+        }
+        .btn-linkedin { background: #0077b5; } .btn-linkedin:hover { background: #005885; transform: translateY(-2px); }
+        .btn-github { background: #24292e; } .btn-github:hover { background: #1b1f23; transform: translateY(-2px); }
+
+        .dashboard {
+            width: 100%; max-width: 1300px;
+            display: grid; grid-template-columns: 350px 1fr; gap: 20px;
+            margin-top: 60px;
+        }
+
+        .panel {
+            background: var(--glass-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        h2 { margin: 0; font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;}
+        h2 i { color: var(--primary); }
+
+        /* GİRDİLER */
+        .input-group { display: flex; flex-direction: column; gap: 10px; }
+        .input-box { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 10px 15px; border-radius: 10px;}
+        .input-box label { font-size: 13px; font-weight: bold; color: var(--text-muted); }
+        .input-box input {
+            background: rgba(15, 23, 42, 0.8); border: 1px solid var(--glass-border);
+            color: white; padding: 8px; border-radius: 6px; font-weight: bold; width: 80px; text-align: center; outline: none; transition: 0.3s;
+        }
+        .input-box input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(59,130,246,0.3);}
+
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 900; font-size: 15px; cursor: pointer; transition: 0.3s; text-transform: uppercase;}
+        .btn-primary:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4); }
+        
+        .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase;}
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* TEORİK SONUÇLAR */
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-card { background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; text-align: center;}
+        .stat-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 5px;}
+        .stat-card .value { font-size: 20px; font-weight: 900; color: white; font-family: monospace;}
+        .stat-card .math-symbol { font-size: 14px; color: var(--primary); margin-bottom: 2px;}
+        
+        .warning-msg { background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3); display: none;}
+
+        /* CANLI SİMÜLASYON ALANI */
+        .sim-header { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border);}
+        .sim-time { font-family: monospace; font-size: 24px; font-weight: bold; color: var(--success); }
+        .sim-stat { display: flex; gap: 20px; }
+        .sim-stat div { text-align: right; }
+        .sim-stat .val { font-size: 20px; font-weight: bold; font-family: monospace; color: white;}
+        .sim-stat .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold;}
+
+        /* KUYRUK (QUEUE) GÖRSELİ */
+        .queue-container {
+            height: 80px; background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.1);
+            border-radius: 12px; display: flex; align-items: center; justify-content: flex-end; padding: 0 15px; overflow: hidden; gap: 8px;
+        }
+        .customer {
+            width: 25px; height: 25px; background: var(--primary); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-size: 12px; color: white;
+            box-shadow: 0 0 10px rgba(59,130,246,0.5); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* SUNUCULAR (SERVERS) GÖRSELİ */
+        .servers-container {
+            display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px;
+        }
+        .server-box {
+            flex: 1; min-width: 100px; height: 100px; background: rgba(0,0,0,0.3);
+            border: 2px solid var(--glass-border); border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .server-box.idle { border-color: rgba(255,255,255,0.2); }
+        .server-box.busy { border-color: var(--warning); box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
+        
+        .server-icon { font-size: 24px; color: var(--text-muted); margin-bottom: 5px; transition: 0.3s;}
+        .server-box.busy .server-icon { color: var(--warning); }
+        
+        .server-label { font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;}
+        
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: var(--warning); width: 0%; transition: width 0.1s linear;}
+
+        @media screen and (max-width: 900px) {
+            .dashboard { grid-template-columns: 1fr; margin-top: 60px;}
+            .social-container { position: relative; top: 0; left: 0; justify-content: center; width: 100%; margin-bottom: 10px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="social-container">
+        <a href="https://linkedin.com/in/onurfurkan" target="_blank" class="social-btn btn-linkedin">
+            <i class="fab fa-linkedin"></i> Onur Furkan Gök
+        </a>
+        <a href="https://github.com/onurfgg" target="_blank" class="social-btn btn-github">
+            <i class="fab fa-github"></i> Onur Furkan Gök
+        </a>
+    </div>
+
+    <div class="dashboard">
+        
+        <div class="panel">
+            <h2><i class="fa-solid fa-sliders"></i> M/M/c Parametreleri</h2>
+            
+            <div class="input-group">
+                <div class="input-box">
+                    <label title="Birim zamandaki ortalama geliş sayısı">Geliş Oranı ($\lambda$)</label>
+                    <input type="number" id="input-lambda" value="10" min="1">
+                </div>
+                <div class="input-box">
+                    <label title="Bir sunucunun birim zamanda sunduğu hizmet">Hizmet Oranı ($\mu$)</label>
+                    <input type="number" id="input-mu" value="4" min="1">
+                </div>
+                <div class="input-box">
+                    <label>Sunucu Sayısı ($c$)</label>
+                    <input type="number" id="input-c" value="3" min="1" max="10">
+                </div>
+                <div class="input-box">
+                    <label>Simülasyon Hızı (x)</label>
+                    <input type="number" id="input-speed" value="60" min="1">
+                </div>
+            </div>
+
+            <button class="btn-primary" id="btn-start"><i class="fa-solid fa-play"></i> Simülasyonu Başlat</button>
+            <button class="btn-danger" id="btn-stop" style="display: none;"><i class="fa-solid fa-stop"></i> Durdur</button>
+
+            <div class="warning-msg" id="warning-rho">
+                <i class="fa-solid fa-triangle-exclamation"></i> DİKKAT: Sistem Kapasitesi Yetersiz! ( $\rho \ge 1$ ). Kuyruk sonsuza uzayacaktır!
+            </div>
+
+            <h2 style="margin-top: 10px;"><i class="fa-solid fa-calculator"></i> Teorik Beklentiler</h2>
+            <div class="results-grid">
+                <div class="stat-card">
+                    <div class="math-symbol">$\rho$</div>
+                    <div class="label">Sistem Doluluğu</div>
+                    <div class="value" id="theo-rho">0.00%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="math-symbol">$P_0$</div>
+                    <div class="label">Sistem Boş Olasılığı</div>
+                    <div class="value" id="theo-p0">0.00%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="math-symbol">$L_q$</div>
+                    <div class="label">Kuyruk Uzunluğu</div>
+                    <div class="value" id="theo-lq">0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="math-symbol">$W_q$</div>
+                    <div class="label">Kuyrukta Bekleme</div>
+                    <div class="value" id="theo-wq">0.00</div>
+                </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 5px;">
+                * $L_q$ ve $W_q$ değerleri Kararlı Durum (Steady-State) için geçerlidir.
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="sim-header">
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Geçen Süre (Birim)</div>
+                    <div class="sim-time" id="sim-clock">00:00:00</div>
+                </div>
+                <div class="sim-stat">
+                    <div>
+                        <div class="lbl">Hizmet Alan</div>
+                        <div class="val" id="sim-completed" style="color: var(--success);">0</div>
+                    </div>
+                    <div>
+                        <div class="lbl">Anlık Kuyruk</div>
+                        <div class="val" id="sim-q-length" style="color: var(--warning);">0</div>
+                    </div>
+                    <div>
+                        <div class="lbl">Sistemdeki Kişi</div>
+                        <div class="val" id="sim-l" style="color: var(--primary);">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="font-size: 14px; margin-top: 10px; color: var(--text-muted);">Bekleme Kuyruğu ($L_q$)</h2>
+            <div class="queue-container" id="queue-display">
+                </div>
+
+            <h2 style="font-size: 14px; margin-top: 10px; color: var(--text-muted);">Hizmet Noktaları (Sunucular)</h2>
+            <div class="servers-container" id="servers-display">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // KaTeX formüllerini render et
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false} ],
+                throwOnError: false
+            });
+            calculateTheoretical(); // Açılışta formülleri hesapla
+            drawServers(parseInt(document.getElementById('input-c').value));
+        });
+
+        // DOM Elemanları
+        const lambdaInput = document.getElementById('input-lambda');
+        const muInput = document.getElementById('input-mu');
+        const cInput = document.getElementById('input-c');
+        const speedInput = document.getElementById('input-speed');
+        
+        const btnStart = document.getElementById('btn-start');
+        const btnStop = document.getElementById('btn-stop');
+        const warningRho = document.getElementById('warning-rho');
+
+        // Teorik Ekranlar
+        const tRho = document.getElementById('theo-rho');
+        const tP0 = document.getElementById('theo-p0');
+        const tLq = document.getElementById('theo-lq');
+        const tWq = document.getElementById('theo-wq');
+
+        // Simülasyon Ekranları
+        const simClock = document.getElementById('sim-clock');
+        const simCompleted = document.getElementById('sim-completed');
+        const simQLength = document.getElementById('sim-q-length');
+        const simL = document.getElementById('sim-l');
+        const queueDisplay = document.getElementById('queue-display');
+        const serversDisplay = document.getElementById('servers-display');
+
+        // Simülasyon Değişkenleri
+        let simInterval = null;
+        let isRunning = false;
+        let simTime = 0; // Dakika cinsinden
+        let timeStep = 0.05; // Her tick'te kaç dakika ilerleyecek
+        
+        let lambda, mu, c;
+        let nextArrivalTime = 0;
+        let queue = 0;
+        let completedCustomers = 0;
+        let servers = []; // { id, busyUntil, totalServiceTime }
+
+        // Faktöriyel Fonksiyonu
+        function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); }
+
+        // Üstel Dağılım (Exponential Distribution) Rastgele Sayı Üretici
+        // Oran (rate) alır, zaman döndürür
+        function getExpRandom(rate) {
+            return -Math.log(1 - Math.random()) / rate;
+        }
+
+        // --- TEORİK HESAPLAMA (M/M/c Formülleri) ---
+        function calculateTheoretical() {
+            lambda = parseFloat(lambdaInput.value);
+            mu = parseFloat(muInput.value);
+            c = parseInt(cInput.value);
+
+            const u = lambda / mu;
+            const rho = u / c;
+
+            tRho.innerText = (rho * 100).toFixed(1) + "%";
+
+            if (rho >= 1) {
+                warningRho.style.display = 'block';
+                tP0.innerText = "N/A"; tLq.innerText = "∞"; tWq.innerText = "∞";
+                return;
+            } else {
+                warningRho.style.display = 'none';
+            }
+
+            // P0 Hesaplama
+            let sum = 0;
+            for (let n = 0; n < c; n++) {
+                sum += Math.pow(u, n) / fact(n);
+            }
+            sum += (Math.pow(u, c) / fact(c)) * (1 / (1 - rho));
+            const p0 = 1 / sum;
+
+            // Lq ve Wq Hesaplama
+            const lq = (p0 * Math.pow(u, c) * rho) / (fact(c) * Math.pow(1 - rho, 2));
+            const wq = lq / lambda;
+
+            tP0.innerText = (p0 * 100).toFixed(2) + "%";
+            tLq.innerText = lq.toFixed(2);
+            tWq.innerText = wq.toFixed(2);
+        }
+
+        // Girdi Değişiminde Teoriyi Güncelle
+        [lambdaInput, muInput, cInput].forEach(inp => {
+            inp.addEventListener('input', () => {
+                if(!isRunning) {
+                    calculateTheoretical();
+                    drawServers(parseInt(cInput.value));
+                }
+            });
+        });
+
+        // --- ARAYÜZ (DOM) ÇİZİM FONKSİYONLARI ---
+        function drawServers(count) {
+            serversDisplay.innerHTML = '';
+            servers = [];
+            for (let i = 0; i < count; i++) {
+                servers.push({ id: i, busyUntil: 0, currentServiceDuration: 0 });
+                
+                const sDiv = document.createElement('div');
+                sDiv.className = 'server-box idle';
+                sDiv.id = `server-${i}`;
+                sDiv.innerHTML = `
+                    <i class="fa-solid fa-user-tie server-icon"></i>
+                    <div class="server-label">Vezne ${i+1}</div>
+                    <div class="progress-bar" id="prog-${i}"></div>
+                `;
+                serversDisplay.appendChild(sDiv);
+            }
+        }
+
+        function updateQueueVisuals() {
+            // Sadece görsel amaçlı en fazla 20 kişiyi çizelim, DOM kasmasın
+            const displayLimit = Math.min(queue, 25);
+            const currentNodes = queueDisplay.childElementCount;
+
+            if (currentNodes < displayLimit) {
+                for (let i = 0; i < displayLimit - currentNodes; i++) {
+                    const c = document.createElement('div');
+                    c.className = 'customer';
+                    c.innerHTML = '<i class="fa-solid fa-user" style="font-size:10px;"></i>';
+                    queueDisplay.appendChild(c);
+                }
+            } else if (currentNodes > displayLimit) {
+                for (let i = 0; i < currentNodes - displayLimit; i++) {
+                    queueDisplay.removeChild(queueDisplay.firstChild);
+                }
+            }
+        }
+
+        function formatClock(totalMinutes) {
+            const h = Math.floor(totalMinutes / 60);
+            const m = Math.floor(totalMinutes % 60);
+            const s = Math.floor((totalMinutes * 60) % 60);
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        // --- SİMÜLASYON DÖNGÜSÜ (CORE ENGINE) ---
+        function simulationTick() {
+            // Zamanı İlerlet
+            simTime += timeStep;
+            simClock.innerText = formatClock(simTime);
+
+            // 1. Olay (Event): Yeni Müşteri Geldi mi?
+            if (simTime >= nextArrivalTime) {
+                queue++;
+                updateQueueVisuals();
+                // Bir sonraki geliş zamanını belirle (Üstel Dağılım)
+                nextArrivalTime = simTime + getExpRandom(lambda);
+            }
+
+            let busyCount = 0;
+
+            // 2. Olay: Sunucu Kontrolleri
+            for (let i = 0; i < c; i++) {
+                const s = servers[i];
+                const sBox = document.getElementById(`server-${i}`);
+                const pBar = document.getElementById(`prog-${i}`);
+
+                // Eğer sunucu çalışıyorsa
+                if (s.busyUntil > simTime) {
+                    busyCount++;
+                    // İlerleme çubuğunu güncelle
+                    const timeSpent = simTime - (s.busyUntil - s.currentServiceDuration);
+                    const percent = (timeSpent / s.currentServiceDuration) * 100;
+                    pBar.style.width = `${Math.min(percent, 100)}%`;
+                } 
+                // Eğer sunucu boşaldıysa
+                else {
+                    if (sBox.classList.contains('busy')) {
+                        // İşlem az önce bitti demektir
+                        sBox.classList.remove('busy');
+                        sBox.classList.add('idle');
+                        pBar.style.width = `0%`;
+                        completedCustomers++;
+                        simCompleted.innerText = completedCustomers;
+                    }
+
+                    // Kuyrukta adam varsa hemen al
+                    if (queue > 0) {
+                        queue--;
+                        updateQueueVisuals();
+                        
+                        // Hizmet süresini belirle (Üstel Dağılım)
+                        const serviceTime = getExpRandom(mu);
+                        s.busyUntil = simTime + serviceTime;
+                        s.currentServiceDuration = serviceTime;
+                        
+                        sBox.classList.remove('idle');
+                        sBox.classList.add('busy');
+                        busyCount++;
+                    }
+                }
+            }
+
+            // İstatistikleri Güncelle
+            simQLength.innerText = queue;
+            simL.innerText = queue + busyCount;
+        }
+
+        // --- KONTROLCÜLER ---
+        btnStart.addEventListener('click', () => {
+            calculateTheoretical(); // Parametreleri son kez güncelle
+            
+            c = parseInt(cInput.value);
+            const speedMultiplier = parseInt(speedInput.value) || 1;
+            
+            // Gerçek dünyada setInterval 50ms'de bir çalışsın
+            const realWorldTickMs = 50; 
+            // 50ms'de simülasyonda ne kadar zaman geçecek? (Hız ayarı)
+            // Normalde 50ms = 0.05 saniye = 0.05 / 60 dakika.
+            timeStep = (realWorldTickMs / 60000) * speedMultiplier;
+
+            if (!isRunning) {
+                // Eğer sıfırdan başlıyorsa
+                if (simTime === 0) {
+                    drawServers(c);
+                    nextArrivalTime = getExpRandom(lambda);
+                    queue = 0;
+                    completedCustomers = 0;
+                    simCompleted.innerText = "0";
+                    queueDisplay.innerHTML = '';
+                }
+
+                isRunning = true;
+                btnStart.style.display = 'none';
+                btnStop.style.display = 'block';
+                
+                // Girdileri Kilitle
+                lambdaInput.disabled = true; muInput.disabled = true; cInput.disabled = true;
+
+                simInterval = setInterval(simulationTick, realWorldTickMs);
+            }
+        });
+
+        btnStop.addEventListener('click', () => {
+            isRunning = false;
+            clearInterval(simInterval);
+            
+            btnStop.style.display = 'none';
+            btnStart.style.display = 'block';
+            btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Devam Et';
+
+            // Girdileri Aç
+            lambdaInput.disabled = false; muInput.disabled = false; cInput.disabled = false;
+        });
+
+    </script>
+</body>
+</html>
