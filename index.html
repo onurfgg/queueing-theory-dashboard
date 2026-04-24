@@ -131,7 +131,7 @@
         .server-label { font-size: 10px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;}
         .progress-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: var(--warning); width: 0%; transition: width 0.1s linear;}
 
-        /* YENİ: GRAFİK (CHART) ALANI */
+        /* GRAFİK (CHART) ALANI */
         .chart-container {
             position: relative; height: 250px; width: 100%; margin-top: 10px;
             background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border: 1px solid var(--glass-border); box-sizing: border-box;
@@ -294,7 +294,7 @@
 
         // Grafik Değişkenleri
         let liveChart;
-        const maxDataPoints = 60; // Grafikte en fazla 60 nokta görünsün (kasmasın)
+        const maxDataPoints = 60; 
         let chartLabels = [];
         let chartDataL = [];
         let chartDataLq = [];
@@ -389,9 +389,11 @@
             simTime += timeStep;
             simClock.innerText = formatClock(simTime);
 
-            if (simTime >= nextArrivalTime) {
-                queue++; updateQueueVisuals();
-                nextArrivalTime = simTime + getExpRandom(lambda);
+            // DÜZELTME: 'if' yerine 'while' kullanıldı. Zaman aralığı (timeStep) ne kadar geniş olursa olsun, 
+            // o aralığa sığan TÜM varışları eksiksiz bir şekilde kuyruğa ekler.
+            while (simTime >= nextArrivalTime) {
+                queue++; 
+                nextArrivalTime += getExpRandom(lambda);
             }
 
             let busyCount = 0;
@@ -407,18 +409,20 @@
                         completedCustomers++; simCompleted.innerText = completedCustomers;
                     }
                     if (queue > 0) {
-                        queue--; updateQueueVisuals();
+                        queue--; 
                         const serviceTime = getExpRandom(mu);
                         s.busyUntil = simTime + serviceTime; s.currentServiceDuration = serviceTime;
                         sBox.classList.remove('idle'); sBox.classList.add('busy'); busyCount++;
                     }
                 }
             }
+            
+            // Performans için DOM manipülasyonunu döngülerin dışında bir kez çalıştır
+            updateQueueVisuals(); 
 
             const currentL = queue + busyCount;
             simQLength.innerText = queue; simL.innerText = currentL;
 
-            // Grafiği her saniyede bir (veya her 20 tick'te) güncelle
             tickCounter++;
             if(tickCounter % 10 === 0) updateChart(formatClock(simTime), currentL, queue);
         }
@@ -427,10 +431,9 @@
             calculateTheoretical(); 
             c = parseInt(cInput.value);
             
-            // YENİ EKLENTİ: Maksimum Hız Koruması (Tarayıcı çökmesini engeller)
             let requestedSpeed = parseInt(speedInput.value) || 1;
             const speedMultiplier = Math.min(requestedSpeed, 1000); 
-            speedInput.value = speedMultiplier; // Input'u UI'da da düzelt
+            speedInput.value = speedMultiplier; 
 
             const realWorldTickMs = 50; 
             timeStep = (realWorldTickMs / 60000) * speedMultiplier;
@@ -450,11 +453,10 @@
         btnStop.addEventListener('click', () => {
             isRunning = false; clearInterval(simInterval);
             btnStop.style.display = 'none'; btnStart.style.display = 'block'; btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Devam Et';
-            btnReset.disabled = false; // Duraklatıldığında sıfırlama izni ver
-            btnReset.classList.remove('btn-secondary'); btnReset.classList.add('btn-danger'); // Dikkat çeksin
+            btnReset.disabled = false; 
+            btnReset.classList.remove('btn-secondary'); btnReset.classList.add('btn-danger'); 
         });
 
-        // YENİ EKLENTİ: Sıfırlama (Reset) Butonu
         btnReset.addEventListener('click', () => {
             simTime = 0; queue = 0; completedCustomers = 0; tickCounter = 0;
             simClock.innerText = "00:00:00";
